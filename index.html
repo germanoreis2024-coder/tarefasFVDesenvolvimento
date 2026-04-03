@@ -26,11 +26,11 @@
           <p class="text-slate-300 text-sm">Acompanhamento de melhorias e desenvolvimento do sistema</p>
         </div>
         <button
-          onclick="abrirModalNovaDemanda()"
-          class="bg-emerald-500 hover:bg-emerald-600 transition px-5 py-3 rounded-xl font-semibold shadow"
-        >
-          + Nova Demanda
-        </button>
+		  id="btnNovaDemanda"
+		  class="bg-emerald-500 hover:bg-emerald-600 transition px-5 py-3 rounded-xl font-semibold shadow"
+		>
+		  + Nova Demanda
+		</button>
       </div>
     </header>
 
@@ -544,8 +544,8 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("btnNovaDemanda").addEventListener("click", abrirModalNovaDemanda);
-    carregarDemandas();
+  document.getElementById("btnNovaDemanda").addEventListener("click", abrirModalNovaDemanda);
+  carregarDemandas();
   });
 
   window.abrirDetalhe = abrirDetalhe;
