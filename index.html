@@ -243,308 +243,318 @@
   </div>
 
   <script>
-    const supabase = window.supabase.createClient(
-      "https://lsffkqeplxfkazceaoww.supabase.co",
-	  "sb_publishable_YgVN3N_i1Fs0QrYUbkDLGg_BroxPLjx"
-    );
+  const supabase = window.supabase.createClient(
+    "https://lsffkqeplxfkazceaoww.supabase.co",
+	"sb_publishable_YgVN3N_i1Fs0QrYUbkDLGg_BroxPLjx"
+  );
 
-    let demandas = [];
-    let demandaSelecionada = null;
-    let checklistAtual = [];
+  let demandas = [];
+  let demandaSelecionada = null;
+  let checklistAtual = [];
 
-    function formatarData(data) {
-      if (!data) return "";
-      return new Date(data).toLocaleString("pt-BR");
+  function formatarData(data) {
+    if (!data) return "";
+    return new Date(data).toLocaleString("pt-BR");
+  }
+
+  function classePrioridade(prioridade) {
+    if (prioridade === "alta") return "bg-red-100 text-red-700";
+    if (prioridade === "media") return "bg-amber-100 text-amber-700";
+    return "bg-emerald-100 text-emerald-700";
+  }
+
+  function textoPrioridade(prioridade) {
+    if (prioridade === "alta") return "Alta";
+    if (prioridade === "media") return "Média";
+    return "Baixa";
+  }
+
+  function abrirModalNovaDemanda() {
+    const modal = document.getElementById("modalNovaDemanda");
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+
+  function fecharModalNovaDemanda() {
+    const modal = document.getElementById("modalNovaDemanda");
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+    limparFormulario();
+  }
+
+  function limparFormulario() {
+    document.getElementById("titulo").value = "";
+    document.getElementById("modulo").value = "";
+    document.getElementById("prioridade").value = "baixa";
+    document.getElementById("resumo").value = "";
+    document.getElementById("descricao").value = "";
+  }
+
+  async function carregarDemandas() {
+    const { data, error } = await supabase
+      .from("demands")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      alert("Erro ao carregar demandas: " + error.message);
+      return;
     }
 
-    function classePrioridade(prioridade) {
-      if (prioridade === "alta") return "bg-red-100 text-red-700";
-      if (prioridade === "media") return "bg-amber-100 text-amber-700";
-      return "bg-emerald-100 text-emerald-700";
-    }
+    demandas = data || [];
+    atualizarResumo();
+    renderizarDemandas();
+  }
 
-    function textoPrioridade(prioridade) {
-      if (prioridade === "alta") return "Alta";
-      if (prioridade === "media") return "Média";
-      return "Baixa";
-    }
+  function atualizarResumo() {
+    const total = demandas.length;
+    const alta = demandas.filter(d => d.priority === "alta").length;
+    const media = demandas.filter(d => d.priority === "media").length;
+    const baixa = demandas.filter(d => d.priority === "baixa").length;
 
-    function abrirModalNovaDemanda() {
-      document.getElementById("modalNovaDemanda").classList.remove("hidden");
-      document.getElementById("modalNovaDemanda").classList.add("flex");
-    }
+    document.getElementById("totalDemandas").textContent = total;
+    document.getElementById("totalAlta").textContent = alta;
+    document.getElementById("totalMedia").textContent = media;
+    document.getElementById("totalBaixa").textContent = baixa;
+  }
 
-    function fecharModalNovaDemanda() {
-      document.getElementById("modalNovaDemanda").classList.add("hidden");
-      document.getElementById("modalNovaDemanda").classList.remove("flex");
-      limparFormulario();
-    }
+  function renderizarDemandas() {
+    const busca = document.getElementById("busca").value.toLowerCase().trim();
+    const lista = document.getElementById("listaDemandas");
 
-    function limparFormulario() {
-      document.getElementById("titulo").value = "";
-      document.getElementById("modulo").value = "";
-      document.getElementById("prioridade").value = "baixa";
-      document.getElementById("resumo").value = "";
-      document.getElementById("descricao").value = "";
-    }
+    const filtradas = demandas.filter(d => {
+      const titulo = (d.title || "").toLowerCase();
+      const modulo = (d.module || "").toLowerCase();
+      const resumo = (d.summary || "").toLowerCase();
+      return titulo.includes(busca) || modulo.includes(busca) || resumo.includes(busca);
+    });
 
-    async function carregarDemandas() {
-      const { data, error } = await supabase
-        .from("demands")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        alert("Erro ao carregar demandas: " + error.message);
-        return;
-      }
-
-      demandas = data || [];
-      atualizarResumo();
-      renderizarDemandas();
-    }
-
-    function atualizarResumo() {
-      const total = demandas.length;
-      const alta = demandas.filter(d => d.priority === "alta").length;
-      const media = demandas.filter(d => d.priority === "media").length;
-      const baixa = demandas.filter(d => d.priority === "baixa").length;
-
-      document.getElementById("totalDemandas").textContent = total;
-      document.getElementById("totalAlta").textContent = alta;
-      document.getElementById("totalMedia").textContent = media;
-      document.getElementById("totalBaixa").textContent = baixa;
-    }
-
-    function renderizarDemandas() {
-      const busca = document.getElementById("busca").value.toLowerCase().trim();
-      const lista = document.getElementById("listaDemandas");
-
-      const filtradas = demandas.filter(d => {
-        const titulo = (d.title || "").toLowerCase();
-        const modulo = (d.module || "").toLowerCase();
-        const resumo = (d.summary || "").toLowerCase();
-        return titulo.includes(busca) || modulo.includes(busca) || resumo.includes(busca);
-      });
-
-      if (!filtradas.length) {
-        lista.innerHTML = `
-          <div class="col-span-full bg-white border border-slate-200 rounded-2xl p-10 text-center shadow-sm">
-            <p class="text-lg font-semibold text-slate-700">Nenhuma demanda encontrada</p>
-            <p class="text-slate-500 mt-2">Cadastre uma nova demanda ou ajuste sua busca.</p>
-          </div>
-        `;
-        return;
-      }
-
-      lista.innerHTML = filtradas.map(d => `
-        <div
-          onclick="abrirDetalhe('${d.id}')"
-          class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer p-5"
-        >
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <h3 class="text-lg font-bold text-slate-800">${escapeHtml(d.title || "")}</h3>
-              <p class="text-sm text-slate-500 mt-1">${formatarData(d.created_at)}</p>
-            </div>
-            <span class="px-3 py-1 rounded-full text-xs font-semibold ${classePrioridade(d.priority)}">
-              ${textoPrioridade(d.priority)}
-            </span>
-          </div>
-
-          <div class="mt-4">
-            <p class="text-xs uppercase text-slate-500 font-semibold">Módulo</p>
-            <p class="mt-1 text-sm font-medium text-slate-700">${escapeHtml(d.module || "-")}</p>
-          </div>
-
-          <div class="mt-4">
-            <p class="text-xs uppercase text-slate-500 font-semibold">Resumo</p>
-            <p class="mt-1 text-sm text-slate-600 line-clamp-3">${escapeHtml(d.summary || "")}</p>
-          </div>
+    if (!filtradas.length) {
+      lista.innerHTML = `
+        <div class="col-span-full bg-white border border-slate-200 rounded-2xl p-10 text-center shadow-sm">
+          <p class="text-lg font-semibold text-slate-700">Nenhuma demanda encontrada</p>
+          <p class="text-slate-500 mt-2">Cadastre uma nova demanda ou ajuste sua busca.</p>
         </div>
+      `;
+      return;
+    }
+
+    lista.innerHTML = filtradas.map(d => `
+      <div
+        onclick="abrirDetalhe('${d.id}')"
+        class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer p-5"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h3 class="text-lg font-bold text-slate-800">${escapeHtml(d.title || "")}</h3>
+            <p class="text-sm text-slate-500 mt-1">${formatarData(d.created_at)}</p>
+          </div>
+          <span class="px-3 py-1 rounded-full text-xs font-semibold ${classePrioridade(d.priority)}">
+            ${textoPrioridade(d.priority)}
+          </span>
+        </div>
+
+        <div class="mt-4">
+          <p class="text-xs uppercase text-slate-500 font-semibold">Módulo</p>
+          <p class="mt-1 text-sm font-medium text-slate-700">${escapeHtml(d.module || "-")}</p>
+        </div>
+
+        <div class="mt-4">
+          <p class="text-xs uppercase text-slate-500 font-semibold">Resumo</p>
+          <p class="mt-1 text-sm text-slate-600 line-clamp-3">${escapeHtml(d.summary || "")}</p>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  async function salvarDemanda() {
+    const title = document.getElementById("titulo").value.trim();
+    const module = document.getElementById("modulo").value.trim();
+    const priority = document.getElementById("prioridade").value;
+    const summary = document.getElementById("resumo").value.trim();
+    const description = document.getElementById("descricao").value.trim();
+
+    if (!title || !summary || !description) {
+      alert("Preencha pelo menos título, resumo e descrição.");
+      return;
+    }
+
+    const { error } = await supabase.from("demands").insert({
+      title,
+      module,
+      priority,
+      status: "aberta",
+      summary,
+      description,
+      notes: ""
+    });
+
+    if (error) {
+      alert("Erro ao salvar demanda: " + error.message);
+      return;
+    }
+
+    fecharModalNovaDemanda();
+    await carregarDemandas();
+  }
+
+  async function abrirDetalhe(id) {
+    const { data, error } = await supabase
+      .from("demands")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      alert("Erro ao abrir demanda: " + error.message);
+      return;
+    }
+
+    demandaSelecionada = data;
+
+    const { data: checklist, error: checklistError } = await supabase
+      .from("demand_checklist")
+      .select("*")
+      .eq("demand_id", id);
+
+    if (checklistError) {
+      alert("Erro ao carregar checklist: " + checklistError.message);
+      return;
+    }
+
+    checklistAtual = checklist || [];
+
+    document.getElementById("listaView").classList.add("hidden");
+    document.getElementById("detalheView").classList.remove("hidden");
+
+    document.getElementById("detTitulo").textContent = data.title || "";
+    document.getElementById("detData").textContent = "Inserida em " + formatarData(data.created_at);
+    document.getElementById("detModulo").textContent = data.module || "-";
+    document.getElementById("detResumo").textContent = data.summary || "";
+    document.getElementById("detDescricao").textContent = data.description || "";
+    document.getElementById("detStatus").textContent = data.status || "aberta";
+    document.getElementById("detPrioridade").textContent = textoPrioridade(data.priority);
+    document.getElementById("detPrioridade").className = `px-3 py-1 rounded-full text-sm font-semibold ${classePrioridade(data.priority)}`;
+
+    document.getElementById("sideTitulo").textContent = data.title || "";
+    document.getElementById("sideModulo").textContent = data.module || "-";
+    document.getElementById("sideData").textContent = formatarData(data.created_at);
+    document.getElementById("campoNotas").value = data.notes || "";
+
+    renderizarChecklist();
+  }
+
+  function renderizarChecklist() {
+    const lista = document.getElementById("listaChecklist");
+
+    if (!checklistAtual.length) {
+      lista.innerHTML = `
+        <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
+          Nenhum item no checklist ainda.
+        </div>
+      `;
+    } else {
+      lista.innerHTML = checklistAtual.map(item => `
+        <label class="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
+          <input
+            type="checkbox"
+            ${item.done ? "checked" : ""}
+            onchange="marcarChecklist('${item.id}', this.checked)"
+            class="w-5 h-5"
+          />
+          <span class="${item.done ? 'line-through text-slate-400' : 'text-slate-700'}">
+            ${escapeHtml(item.text || "")}
+          </span>
+        </label>
       `).join("");
     }
 
-    async function salvarDemanda() {
-      const title = document.getElementById("titulo").value.trim();
-      const module = document.getElementById("modulo").value.trim();
-      const priority = document.getElementById("prioridade").value;
-      const summary = document.getElementById("resumo").value.trim();
-      const description = document.getElementById("descricao").value.trim();
+    const total = checklistAtual.length;
+    const concluidos = checklistAtual.filter(i => i.done).length;
+    document.getElementById("checkProgress").textContent = `${concluidos} de ${total} concluídos`;
+  }
 
-      if (!title || !summary || !description) {
-        alert("Preencha pelo menos título, resumo e descrição.");
-        return;
-      }
+  async function adicionarChecklist() {
+    const texto = document.getElementById("novoChecklist").value.trim();
 
-      const { error } = await supabase.from("demands").insert({
-        title,
-        module,
-        priority,
-        status: "aberta",
-        summary,
-        description,
-        notes: ""
-      });
+    if (!texto || !demandaSelecionada) return;
 
-      if (error) {
-        alert("Erro ao salvar demanda: " + error.message);
-        return;
-      }
+    const { error } = await supabase.from("demand_checklist").insert({
+      demand_id: demandaSelecionada.id,
+      text: texto,
+      done: false
+    });
 
-      fecharModalNovaDemanda();
-      await carregarDemandas();
+    if (error) {
+      alert("Erro ao adicionar item: " + error.message);
+      return;
     }
 
-    async function abrirDetalhe(id) {
-      const { data, error } = await supabase
-        .from("demands")
-        .select("*")
-        .eq("id", id)
-        .single();
+    document.getElementById("novoChecklist").value = "";
+    await abrirDetalhe(demandaSelecionada.id);
+  }
 
-      if (error) {
-        alert("Erro ao abrir demanda: " + error.message);
-        return;
-      }
+  async function marcarChecklist(id, done) {
+    const { error } = await supabase
+      .from("demand_checklist")
+      .update({ done })
+      .eq("id", id);
 
-      demandaSelecionada = data;
-
-      const { data: checklist, error: checklistError } = await supabase
-        .from("demand_checklist")
-        .select("*")
-        .eq("demand_id", id)
-        .order("id", { ascending: true });
-
-      if (checklistError) {
-        alert("Erro ao carregar checklist: " + checklistError.message);
-        return;
-      }
-
-      checklistAtual = checklist || [];
-
-      document.getElementById("listaView").classList.add("hidden");
-      document.getElementById("detalheView").classList.remove("hidden");
-
-      document.getElementById("detTitulo").textContent = data.title || "";
-      document.getElementById("detData").textContent = "Inserida em " + formatarData(data.created_at);
-      document.getElementById("detModulo").textContent = data.module || "-";
-      document.getElementById("detResumo").textContent = data.summary || "";
-      document.getElementById("detDescricao").textContent = data.description || "";
-      document.getElementById("detStatus").textContent = data.status || "aberta";
-      document.getElementById("detPrioridade").textContent = textoPrioridade(data.priority);
-      document.getElementById("detPrioridade").className = `px-3 py-1 rounded-full text-sm font-semibold ${classePrioridade(data.priority)}`;
-
-      document.getElementById("sideTitulo").textContent = data.title || "";
-      document.getElementById("sideModulo").textContent = data.module || "-";
-      document.getElementById("sideData").textContent = formatarData(data.created_at);
-      document.getElementById("campoNotas").value = data.notes || "";
-
-      renderizarChecklist();
+    if (error) {
+      alert("Erro ao atualizar checklist: " + error.message);
+      return;
     }
 
-    function renderizarChecklist() {
-      const lista = document.getElementById("listaChecklist");
+    const item = checklistAtual.find(i => i.id === id);
+    if (item) item.done = done;
+    renderizarChecklist();
+  }
 
-      if (!checklistAtual.length) {
-        lista.innerHTML = `
-          <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
-            Nenhum item no checklist ainda.
-          </div>
-        `;
-      } else {
-        lista.innerHTML = checklistAtual.map(item => `
-          <label class="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
-            <input
-              type="checkbox"
-              ${item.done ? "checked" : ""}
-              onchange="marcarChecklist('${item.id}', this.checked)"
-              class="w-5 h-5"
-            />
-            <span class="${item.done ? 'line-through text-slate-400' : 'text-slate-700'}">
-              ${escapeHtml(item.text || "")}
-            </span>
-          </label>
-        `).join("");
-      }
+  async function salvarNotas() {
+    if (!demandaSelecionada) return;
 
-      const total = checklistAtual.length;
-      const concluidos = checklistAtual.filter(i => i.done).length;
-      document.getElementById("checkProgress").textContent = `${concluidos} de ${total} concluídos`;
+    const notes = document.getElementById("campoNotas").value;
+
+    const { error } = await supabase
+      .from("demands")
+      .update({ notes })
+      .eq("id", demandaSelecionada.id);
+
+    if (error) {
+      alert("Erro ao salvar anotações: " + error.message);
+      return;
     }
 
-    async function adicionarChecklist() {
-      const texto = document.getElementById("novoChecklist").value.trim();
+    alert("Anotações salvas com sucesso.");
+  }
 
-      if (!texto || !demandaSelecionada) {
-        return;
-      }
+  function voltarLista() {
+    document.getElementById("detalheView").classList.add("hidden");
+    document.getElementById("listaView").classList.remove("hidden");
+    demandaSelecionada = null;
+  }
 
-      const { error } = await supabase.from("demand_checklist").insert({
-        demand_id: demandaSelecionada.id,
-        text: texto,
-        done: false
-      });
+  function escapeHtml(text) {
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
 
-      if (error) {
-        alert("Erro ao adicionar item: " + error.message);
-        return;
-      }
-
-      document.getElementById("novoChecklist").value = "";
-      await abrirDetalhe(demandaSelecionada.id);
-    }
-
-    async function marcarChecklist(id, done) {
-      const { error } = await supabase
-        .from("demand_checklist")
-        .update({ done })
-        .eq("id", id);
-
-      if (error) {
-        alert("Erro ao atualizar checklist: " + error.message);
-        return;
-      }
-
-      const item = checklistAtual.find(i => i.id === id);
-      if (item) item.done = done;
-      renderizarChecklist();
-    }
-
-    async function salvarNotas() {
-      if (!demandaSelecionada) return;
-
-      const notes = document.getElementById("campoNotas").value;
-
-      const { error } = await supabase
-        .from("demands")
-        .update({ notes })
-        .eq("id", demandaSelecionada.id);
-
-      if (error) {
-        alert("Erro ao salvar anotações: " + error.message);
-        return;
-      }
-
-      alert("Anotações salvas com sucesso.");
-    }
-
-    function voltarLista() {
-      document.getElementById("detalheView").classList.add("hidden");
-      document.getElementById("listaView").classList.remove("hidden");
-      demandaSelecionada = null;
-    }
-
-    function escapeHtml(text) {
-      return String(text)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
+  document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("btnNovaDemanda").addEventListener("click", abrirModalNovaDemanda);
     carregarDemandas();
-  </script>
+  });
+
+  window.abrirDetalhe = abrirDetalhe;
+  window.marcarChecklist = marcarChecklist;
+  window.adicionarChecklist = adicionarChecklist;
+  window.salvarNotas = salvarNotas;
+  window.voltarLista = voltarLista;
+  window.fecharModalNovaDemanda = fecharModalNovaDemanda;
+  window.salvarDemanda = salvarDemanda;
+</script>
 </body>
 </html>
