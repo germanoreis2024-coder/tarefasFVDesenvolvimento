@@ -3,56 +3,48 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Portal de Demandas2</title>
-
+  <title>Portal de Demandas</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <style>
-    .line-clamp-3 {
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+    .line-clamp-3{
+      display:-webkit-box;
+      -webkit-line-clamp:3;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
     }
-    .modal-open { overflow: hidden; }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-800 min-h-screen">
+<body class="bg-slate-100 text-slate-800">
   <div class="min-h-screen">
     <header class="bg-slate-900 text-white shadow-lg">
-      <div class="max-w-7xl mx-auto px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div class="max-w-7xl mx-auto px-6 py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 class="text-2xl md:text-3xl font-bold">Portal de Demandas</h1>
-          <p class="text-slate-300 text-sm">Acompanhamento de melhorias e desenvolvimento do sistema</p>
+          <p class="text-slate-300 text-sm">Acompanhamento de melhorias, tarefas e evolução do sistema</p>
         </div>
-        <button
-          id="btnNovaDemanda"
-          type="button"
-          class="bg-emerald-500 hover:bg-emerald-600 transition px-5 py-3 rounded-xl font-semibold shadow"
-        >
+        <button id="btnNovaDemanda" type="button" class="bg-emerald-500 hover:bg-emerald-600 px-5 py-3 rounded-xl font-semibold shadow">
           + Nova Demanda
         </button>
       </div>
     </header>
 
     <main class="max-w-7xl mx-auto px-6 py-8">
+      <div id="alerta" class="hidden mb-6 rounded-2xl px-4 py-3 text-sm font-medium"></div>
+
       <section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
           <p class="text-sm text-slate-500">Total de demandas</p>
           <h2 id="totalDemandas" class="text-3xl font-bold mt-2">0</h2>
         </div>
-
         <div class="bg-white rounded-2xl p-5 shadow-sm border border-red-100">
           <p class="text-sm text-slate-500">Prioridade alta</p>
           <h2 id="totalAlta" class="text-3xl font-bold mt-2 text-red-500">0</h2>
         </div>
-
         <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-100">
           <p class="text-sm text-slate-500">Prioridade média</p>
           <h2 id="totalMedia" class="text-3xl font-bold mt-2 text-amber-500">0</h2>
         </div>
-
         <div class="bg-white rounded-2xl p-5 shadow-sm border border-emerald-100">
           <p class="text-sm text-slate-500">Prioridade baixa</p>
           <h2 id="totalBaixa" class="text-3xl font-bold mt-2 text-emerald-500">0</h2>
@@ -60,40 +52,28 @@
       </section>
 
       <section id="listaView">
-        <div class="flex flex-col md:flex-row gap-4 md:items-center md:justify-between mb-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
             <h2 class="text-xl font-bold">Demandas cadastradas</h2>
-            <p class="text-slate-500 text-sm">Clique em uma demanda para ver os detalhes e andamento</p>
+            <p class="text-slate-500 text-sm">Clique em uma demanda para abrir o detalhe completo</p>
           </div>
-
           <div class="flex gap-3">
-            <input
-              id="busca"
-              type="text"
-              placeholder="Buscar por título, módulo ou resumo..."
-              class="w-full md:w-80 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-300"
-            />
+            <input id="busca" type="text" placeholder="Buscar por título, módulo ou resumo..."
+              class="w-full md:w-80 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-300" />
           </div>
         </div>
-
         <div id="listaDemandas" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"></div>
       </section>
 
       <section id="detalheView" class="hidden">
         <div class="mb-6">
-          <button
-            id="btnVoltarLista"
-            type="button"
-            class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 transition font-medium"
-          >
-            ← Voltar
-          </button>
+          <button id="btnVoltar" type="button" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 transition font-medium">← Voltar</button>
         </div>
 
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div class="xl:col-span-2 space-y-6">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <div class="flex flex-wrap gap-3 items-start justify-between">
+              <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 id="detTitulo" class="text-2xl font-bold"></h2>
                   <p id="detData" class="text-sm text-slate-500 mt-1"></p>
@@ -126,55 +106,36 @@
                 <h3 class="text-lg font-bold">Checklist</h3>
                 <span id="checkProgress" class="text-sm text-slate-500"></span>
               </div>
-
               <div class="flex flex-col md:flex-row gap-3 mb-4">
-                <input
-                  id="novoChecklist"
-                  type="text"
-                  placeholder="Adicionar item no checklist"
-                  class="flex-1 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-300"
-                />
-                <button
-                  id="btnAdicionarChecklist"
-                  type="button"
-                  class="bg-slate-900 text-white px-4 py-3 rounded-xl hover:bg-slate-800 transition"
-                >
-                  Adicionar
-                </button>
+                <input id="novoChecklist" type="text" placeholder="Adicionar item no checklist"
+                  class="flex-1 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-300" />
+                <button id="btnAdicionarChecklist" type="button"
+                  class="bg-slate-900 text-white px-4 py-3 rounded-xl hover:bg-slate-800 transition">Adicionar</button>
               </div>
-
               <div id="listaChecklist" class="space-y-3"></div>
             </div>
 
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
               <h3 class="text-lg font-bold mb-4">Anotações da demanda</h3>
-              <textarea
-                id="campoNotas"
-                rows="8"
+              <textarea id="campoNotas" rows="8"
                 placeholder="Escreva aqui observações, evolução, orientações, pendências..."
-                class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-300"
-              ></textarea>
+                class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-300"></textarea>
               <div class="mt-4 flex justify-end">
-                <button
-                  id="btnSalvarNotas"
-                  type="button"
-                  class="bg-blue-600 text-white px-5 py-3 rounded-xl hover:bg-blue-700 transition font-medium"
-                >
-                  Salvar anotações
-                </button>
+                <button id="btnSalvarNotas" type="button"
+                  class="bg-blue-600 text-white px-5 py-3 rounded-xl hover:bg-blue-700 transition font-medium">Salvar anotações</button>
               </div>
             </div>
 
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <div class="flex items-center justify-between mb-4">
+              <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                 <h3 class="text-lg font-bold">Imagens da demanda</h3>
-                <label class="bg-purple-600 text-white px-4 py-3 rounded-xl hover:bg-purple-700 transition cursor-pointer font-medium">
+                <label class="bg-purple-600 text-white px-4 py-3 rounded-xl hover:bg-purple-700 transition cursor-pointer font-medium text-center">
                   Inserir imagens
                   <input id="inputImagens" type="file" accept="image/*" multiple class="hidden" />
                 </label>
               </div>
-              <p class="text-sm text-slate-500 mb-4">As imagens são salvas localmente no navegador. Se quiser salvar online no Supabase Storage, posso te entregar a próxima versão.</p>
-              <div id="galeriaImagens" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
+              <p class="text-sm text-slate-500 mb-4">As imagens são enviadas para o bucket <strong>demand-images</strong> no Supabase Storage.</p>
+              <div id="galeriaImagens" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
             </div>
           </div>
 
@@ -198,9 +159,9 @@
             </div>
 
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <h3 class="text-lg font-bold mb-4">Próximos passos</h3>
+              <h3 class="text-lg font-bold mb-4">Orientação</h3>
               <p class="text-sm text-slate-600 leading-6">
-                Use esta área para acompanhar o andamento da implementação, registrar observações, inserir imagens e marcar cada etapa concluída.
+                Use esta tela para acompanhar cada solicitação, salvar observações, criar checklist e enviar imagens de apoio.
               </p>
             </div>
           </div>
@@ -209,7 +170,7 @@
     </main>
   </div>
 
-  <div id="modalNovaDemanda" class="hidden fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
+  <div id="modalNovaDemanda" class="hidden fixed inset-0 z-50 bg-black/50 p-4 items-center justify-center">
     <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-6">
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-xl font-bold">Cadastrar nova demanda</h2>
@@ -248,12 +209,8 @@
       </div>
 
       <div class="mt-6 flex justify-end gap-3">
-        <button id="btnCancelarModal" type="button" class="px-4 py-3 rounded-xl bg-slate-200 hover:bg-slate-300 transition">
-          Cancelar
-        </button>
-        <button id="btnSalvarDemanda" type="button" class="px-5 py-3 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition font-semibold">
-          Salvar demanda
-        </button>
+        <button id="btnCancelarModal" type="button" class="px-4 py-3 rounded-xl bg-slate-200 hover:bg-slate-300 transition">Cancelar</button>
+        <button id="btnSalvarDemanda" type="button" class="px-5 py-3 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition font-semibold">Salvar demanda</button>
       </div>
     </div>
   </div>
@@ -261,48 +218,33 @@
   <script>
     const SUPABASE_URL = "https://lsffkqeplxfkazceaoww.supabase.co";
     const SUPABASE_KEY = "sb_publishable_YgVN3N_i1Fs0QrYUbkDLGg_BroxPLjx";
+    const STORAGE_BUCKET = "demand-images";
 
-    let supabase = null;
+    let supabaseClient = null;
     let demandas = [];
-    let demandaSelecionada = null;
+    let demandaAtual = null;
     let checklistAtual = [];
     let imagensAtuais = [];
 
-    function initSupabase() {
-      try {
-        if (window.supabase && typeof window.supabase.createClient === "function") {
-          supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-          return true;
-        }
-      } catch (e) {
-        console.error("Falha ao iniciar Supabase:", e);
-      }
-      return false;
+    function $(id){ return document.getElementById(id); }
+
+    function showAlert(message, type = "info") {
+      const el = $("alerta");
+      if (!el) return;
+      const styles = {
+        success: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+        error: "bg-red-50 text-red-700 border border-red-200",
+        info: "bg-blue-50 text-blue-700 border border-blue-200"
+      };
+      el.className = "mb-6 rounded-2xl px-4 py-3 text-sm font-medium " + (styles[type] || styles.info);
+      el.textContent = message;
+      el.classList.remove("hidden");
+      clearTimeout(showAlert._timer);
+      showAlert._timer = setTimeout(() => el.classList.add("hidden"), 5000);
     }
 
-    function qs(id) {
-      return document.getElementById(id);
-    }
-
-    function formatarData(data) {
-      if (!data) return "";
-      return new Date(data).toLocaleString("pt-BR");
-    }
-
-    function classePrioridade(prioridade) {
-      if (prioridade === "alta") return "bg-red-100 text-red-700";
-      if (prioridade === "media") return "bg-amber-100 text-amber-700";
-      return "bg-emerald-100 text-emerald-700";
-    }
-
-    function textoPrioridade(prioridade) {
-      if (prioridade === "alta") return "Alta";
-      if (prioridade === "media") return "Média";
-      return "Baixa";
-    }
-
-    function escapeHtml(text) {
-      return String(text ?? "")
+    function safeText(value) {
+      return String(value ?? "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
@@ -310,74 +252,83 @@
         .replace(/'/g, "&#039;");
     }
 
-    function abrirModalNovaDemanda() {
-      const modal = qs("modalNovaDemanda");
+    function formatDate(value) {
+      if (!value) return "";
+      return new Date(value).toLocaleString("pt-BR");
+    }
+
+    function priorityBadge(priority) {
+      if (priority === "alta") return "bg-red-100 text-red-700";
+      if (priority === "media") return "bg-amber-100 text-amber-700";
+      return "bg-emerald-100 text-emerald-700";
+    }
+
+    function priorityText(priority) {
+      if (priority === "alta") return "Alta";
+      if (priority === "media") return "Média";
+      return "Baixa";
+    }
+
+    function initSupabase() {
+      if (!window.supabase || typeof window.supabase.createClient !== "function") {
+        throw new Error("Biblioteca do Supabase não carregou.");
+      }
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    }
+
+    function openModal() {
+      const modal = $("modalNovaDemanda");
       modal.classList.remove("hidden");
       modal.classList.add("flex");
-      document.body.classList.add("modal-open");
-      setTimeout(() => qs("titulo") && qs("titulo").focus(), 50);
+      setTimeout(() => $("titulo") && $("titulo").focus(), 50);
     }
 
-    function fecharModalNovaDemanda() {
-      const modal = qs("modalNovaDemanda");
+    function closeModal() {
+      const modal = $("modalNovaDemanda");
       modal.classList.add("hidden");
       modal.classList.remove("flex");
-      document.body.classList.remove("modal-open");
-      limparFormulario();
+      clearForm();
     }
 
-    function limparFormulario() {
-      qs("titulo").value = "";
-      qs("modulo").value = "";
-      qs("prioridade").value = "baixa";
-      qs("resumo").value = "";
-      qs("descricao").value = "";
+    function clearForm() {
+      $("titulo").value = "";
+      $("modulo").value = "";
+      $("prioridade").value = "baixa";
+      $("resumo").value = "";
+      $("descricao").value = "";
     }
 
-    async function carregarDemandas() {
-      if (!supabase) return;
+    function updateStats() {
+      $("totalDemandas").textContent = demandas.length;
+      $("totalAlta").textContent = demandas.filter(d => d.priority === "alta").length;
+      $("totalMedia").textContent = demandas.filter(d => d.priority === "media").length;
+      $("totalBaixa").textContent = demandas.filter(d => d.priority === "baixa").length;
+    }
 
-      const { data, error } = await supabase
+    async function fetchDemands() {
+      const { data, error } = await supabaseClient
         .from("demands")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) {
-        alert("Erro ao carregar demandas: " + error.message);
-        return;
-      }
-
+      if (error) throw error;
       demandas = data || [];
-      atualizarResumo();
-      renderizarDemandas();
+      updateStats();
+      renderDemands();
     }
 
-    function atualizarResumo() {
-      const total = demandas.length;
-      const alta = demandas.filter(d => d.priority === "alta").length;
-      const media = demandas.filter(d => d.priority === "media").length;
-      const baixa = demandas.filter(d => d.priority === "baixa").length;
-
-      qs("totalDemandas").textContent = total;
-      qs("totalAlta").textContent = alta;
-      qs("totalMedia").textContent = media;
-      qs("totalBaixa").textContent = baixa;
-    }
-
-    function renderizarDemandas() {
-      const buscaInput = qs("busca");
-      const busca = buscaInput ? buscaInput.value.toLowerCase().trim() : "";
-      const lista = qs("listaDemandas");
-
-      const filtradas = demandas.filter(d => {
-        const titulo = (d.title || "").toLowerCase();
-        const modulo = (d.module || "").toLowerCase();
-        const resumo = (d.summary || "").toLowerCase();
-        return titulo.includes(busca) || modulo.includes(busca) || resumo.includes(busca);
+    function renderDemands() {
+      const term = (($("busca")?.value || "").toLowerCase()).trim();
+      const filtered = demandas.filter(d => {
+        const title = (d.title || "").toLowerCase();
+        const module = (d.module || "").toLowerCase();
+        const summary = (d.summary || "").toLowerCase();
+        return title.includes(term) || module.includes(term) || summary.includes(term);
       });
 
-      if (!filtradas.length) {
-        lista.innerHTML = `
+      const list = $("listaDemandas");
+      if (!filtered.length) {
+        list.innerHTML = `
           <div class="col-span-full bg-white border border-slate-200 rounded-2xl p-10 text-center shadow-sm">
             <p class="text-lg font-semibold text-slate-700">Nenhuma demanda encontrada</p>
             <p class="text-slate-500 mt-2">Cadastre uma nova demanda ou ajuste sua busca.</p>
@@ -386,54 +337,44 @@
         return;
       }
 
-      lista.innerHTML = filtradas.map(d => `
-        <button
-          type="button"
-          data-id="${d.id}"
-          class="demanda-card text-left bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer p-5"
-        >
+      list.innerHTML = filtered.map(d => `
+        <button type="button" data-id="${d.id}" class="demanda-card text-left bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer p-5">
           <div class="flex items-start justify-between gap-3">
             <div>
-              <h3 class="text-lg font-bold text-slate-800">${escapeHtml(d.title || "")}</h3>
-              <p class="text-sm text-slate-500 mt-1">${formatarData(d.created_at)}</p>
+              <h3 class="text-lg font-bold text-slate-800">${safeText(d.title)}</h3>
+              <p class="text-sm text-slate-500 mt-1">${formatDate(d.created_at)}</p>
             </div>
-            <span class="px-3 py-1 rounded-full text-xs font-semibold ${classePrioridade(d.priority)}">
-              ${textoPrioridade(d.priority)}
-            </span>
+            <span class="px-3 py-1 rounded-full text-xs font-semibold ${priorityBadge(d.priority)}">${priorityText(d.priority)}</span>
           </div>
-
           <div class="mt-4">
             <p class="text-xs uppercase text-slate-500 font-semibold">Módulo</p>
-            <p class="mt-1 text-sm font-medium text-slate-700">${escapeHtml(d.module || "-")}</p>
+            <p class="mt-1 text-sm font-medium text-slate-700">${safeText(d.module || "-")}</p>
           </div>
-
           <div class="mt-4">
             <p class="text-xs uppercase text-slate-500 font-semibold">Resumo</p>
-            <p class="mt-1 text-sm text-slate-600 line-clamp-3">${escapeHtml(d.summary || "")}</p>
+            <p class="mt-1 text-sm text-slate-600 line-clamp-3">${safeText(d.summary)}</p>
           </div>
         </button>
       `).join("");
 
       document.querySelectorAll(".demanda-card").forEach(card => {
-        card.addEventListener("click", () => abrirDetalhe(card.dataset.id));
+        card.addEventListener("click", () => openDemand(card.dataset.id));
       });
     }
 
-    async function salvarDemanda() {
-      if (!supabase) return;
-
-      const title = qs("titulo").value.trim();
-      const module = qs("modulo").value.trim();
-      const priority = qs("prioridade").value;
-      const summary = qs("resumo").value.trim();
-      const description = qs("descricao").value.trim();
+    async function createDemand() {
+      const title = $("titulo").value.trim();
+      const module = $("modulo").value.trim();
+      const priority = $("prioridade").value;
+      const summary = $("resumo").value.trim();
+      const description = $("descricao").value.trim();
 
       if (!title || !summary || !description) {
-        alert("Preencha pelo menos título, resumo e descrição.");
+        showAlert("Preencha pelo menos título, resumo e descrição.", "error");
         return;
       }
 
-      const { error } = await supabase.from("demands").insert({
+      const { error } = await supabaseClient.from("demands").insert({
         title,
         module,
         priority,
@@ -443,178 +384,187 @@
         notes: ""
       });
 
-      if (error) {
-        alert("Erro ao salvar demanda: " + error.message);
-        return;
-      }
+      if (error) throw error;
 
-      fecharModalNovaDemanda();
-      await carregarDemandas();
+      closeModal();
+      await fetchDemands();
+      showAlert("Demanda criada com sucesso.", "success");
     }
 
-    async function abrirDetalhe(id) {
-      if (!supabase) return;
-
-      const { data, error } = await supabase
+    async function openDemand(id) {
+      const { data: demand, error: demandError } = await supabaseClient
         .from("demands")
         .select("*")
         .eq("id", id)
         .single();
 
-      if (error) {
-        alert("Erro ao abrir demanda: " + error.message);
-        return;
-      }
+      if (demandError) throw demandError;
 
-      demandaSelecionada = data;
-
-      const { data: checklist, error: checklistError } = await supabase
+      const { data: checklist, error: checklistError } = await supabaseClient
         .from("demand_checklist")
         .select("*")
         .eq("demand_id", id)
-        .order("id", { ascending: true });
+        .order("created_at", { ascending: true });
 
-      if (checklistError) {
-        alert("Erro ao carregar checklist: " + checklistError.message);
-        return;
-      }
+      if (checklistError && !String(checklistError.message || "").includes("created_at")) throw checklistError;
 
+      const { data: images, error: imageError } = await supabaseClient
+        .from("demand_images")
+        .select("*")
+        .eq("demand_id", id)
+        .order("created_at", { ascending: true });
+
+      if (imageError && !String(imageError.message || "").includes("created_at")) throw imageError;
+
+      demandaAtual = demand;
       checklistAtual = checklist || [];
-      imagensAtuais = JSON.parse(localStorage.getItem("demanda_imagens_" + id) || "[]");
+      imagensAtuais = images || [];
 
-      qs("listaView").classList.add("hidden");
-      qs("detalheView").classList.remove("hidden");
+      $("listaView").classList.add("hidden");
+      $("detalheView").classList.remove("hidden");
 
-      qs("detTitulo").textContent = data.title || "";
-      qs("detData").textContent = "Inserida em " + formatarData(data.created_at);
-      qs("detModulo").textContent = data.module || "-";
-      qs("detResumo").textContent = data.summary || "";
-      qs("detDescricao").textContent = data.description || "";
-      qs("detStatus").textContent = data.status || "aberta";
-      qs("detPrioridade").textContent = textoPrioridade(data.priority);
-      qs("detPrioridade").className = `px-3 py-1 rounded-full text-sm font-semibold ${classePrioridade(data.priority)}`;
+      $("detTitulo").textContent = demand.title || "";
+      $("detData").textContent = "Inserida em " + formatDate(demand.created_at);
+      $("detModulo").textContent = demand.module || "-";
+      $("detResumo").textContent = demand.summary || "";
+      $("detDescricao").textContent = demand.description || "";
+      $("detStatus").textContent = demand.status || "aberta";
+      $("detPrioridade").textContent = priorityText(demand.priority);
+      $("detPrioridade").className = "px-3 py-1 rounded-full text-sm font-semibold " + priorityBadge(demand.priority);
 
-      qs("sideTitulo").textContent = data.title || "";
-      qs("sideModulo").textContent = data.module || "-";
-      qs("sideData").textContent = formatarData(data.created_at);
-      qs("campoNotas").value = data.notes || "";
+      $("sideTitulo").textContent = demand.title || "";
+      $("sideModulo").textContent = demand.module || "-";
+      $("sideData").textContent = formatDate(demand.created_at);
+      $("campoNotas").value = demand.notes || "";
 
-      renderizarChecklist();
-      renderizarImagens();
+      renderChecklist();
+      renderImages();
     }
 
-    function renderizarChecklist() {
-      const lista = qs("listaChecklist");
-
+    function renderChecklist() {
+      const list = $("listaChecklist");
       if (!checklistAtual.length) {
-        lista.innerHTML = `
+        list.innerHTML = `
           <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
             Nenhum item no checklist ainda.
           </div>
         `;
       } else {
-        lista.innerHTML = checklistAtual.map(item => `
-          <label class="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
-            <input
-              type="checkbox"
-              data-id="${item.id}"
-              ${item.done ? "checked" : ""}
-              class="check-item w-5 h-5"
-            />
-            <span class="${item.done ? 'line-through text-slate-400' : 'text-slate-700'}">
-              ${escapeHtml(item.text || "")}
-            </span>
-          </label>
+        list.innerHTML = checklistAtual.map(item => `
+          <div class="flex items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <label class="flex items-center gap-3 flex-1">
+              <input type="checkbox" data-id="${item.id}" class="check-item w-5 h-5" ${item.done ? "checked" : ""} />
+              <span class="${item.done ? "line-through text-slate-400" : "text-slate-700"}">${safeText(item.text)}</span>
+            </label>
+            <button type="button" data-id="${item.id}" class="delete-check px-3 py-1 rounded-lg bg-red-100 text-red-700 text-sm">Excluir</button>
+          </div>
         `).join("");
 
-        document.querySelectorAll(".check-item").forEach(input => {
-          input.addEventListener("change", e => {
-            marcarChecklist(e.target.dataset.id, e.target.checked);
+        document.querySelectorAll(".check-item").forEach(el => {
+          el.addEventListener("change", async (e) => {
+            await toggleChecklistItem(e.target.dataset.id, e.target.checked);
+          });
+        });
+
+        document.querySelectorAll(".delete-check").forEach(el => {
+          el.addEventListener("click", async () => {
+            await deleteChecklistItem(el.dataset.id);
           });
         });
       }
 
       const total = checklistAtual.length;
-      const concluidos = checklistAtual.filter(i => i.done).length;
-      qs("checkProgress").textContent = `${concluidos} de ${total} concluídos`;
+      const done = checklistAtual.filter(i => i.done).length;
+      $("checkProgress").textContent = `${done} de ${total} concluídos`;
     }
 
-    async function adicionarChecklist() {
-      if (!supabase || !demandaSelecionada) return;
+    async function addChecklistItem() {
+      if (!demandaAtual) return;
+      const text = $("novoChecklist").value.trim();
+      if (!text) return;
 
-      const texto = qs("novoChecklist").value.trim();
-      if (!texto) return;
-
-      const { error } = await supabase.from("demand_checklist").insert({
-        demand_id: demandaSelecionada.id,
-        text: texto,
+      const { error } = await supabaseClient.from("demand_checklist").insert({
+        demand_id: demandaAtual.id,
+        text,
         done: false
       });
+      if (error) throw error;
 
-      if (error) {
-        alert("Erro ao adicionar item: " + error.message);
-        return;
-      }
-
-      qs("novoChecklist").value = "";
-      await abrirDetalhe(demandaSelecionada.id);
+      $("novoChecklist").value = "";
+      await openDemand(demandaAtual.id);
     }
 
-    async function marcarChecklist(id, done) {
-      if (!supabase) return;
-
-      const { error } = await supabase
+    async function toggleChecklistItem(id, done) {
+      const { error } = await supabaseClient
         .from("demand_checklist")
         .update({ done })
         .eq("id", id);
 
-      if (error) {
-        alert("Erro ao atualizar checklist: " + error.message);
-        return;
-      }
-
-      const item = checklistAtual.find(i => i.id === id);
+      if (error) throw error;
+      const item = checklistAtual.find(x => x.id === id);
       if (item) item.done = done;
-      renderizarChecklist();
+      renderChecklist();
     }
 
-    async function salvarNotas() {
-      if (!supabase || !demandaSelecionada) return;
+    async function deleteChecklistItem(id) {
+      const { error } = await supabaseClient
+        .from("demand_checklist")
+        .delete()
+        .eq("id", id);
 
-      const notes = qs("campoNotas").value;
+      if (error) throw error;
+      checklistAtual = checklistAtual.filter(x => x.id !== id);
+      renderChecklist();
+      showAlert("Item do checklist removido.", "success");
+    }
 
-      const { error } = await supabase
+    async function saveNotes() {
+      if (!demandaAtual) return;
+      const notes = $("campoNotas").value;
+
+      const { error } = await supabaseClient
         .from("demands")
         .update({ notes })
-        .eq("id", demandaSelecionada.id);
+        .eq("id", demandaAtual.id);
 
-      if (error) {
-        alert("Erro ao salvar anotações: " + error.message);
-        return;
+      if (error) throw error;
+      showAlert("Anotações salvas com sucesso.", "success");
+    }
+
+    async function uploadImages(files) {
+      if (!demandaAtual || !files || !files.length) return;
+
+      for (const file of Array.from(files)) {
+        const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+        const fileName = `${demandaAtual.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+        const { error: uploadError } = await supabaseClient.storage
+          .from(STORAGE_BUCKET)
+          .upload(fileName, file, { upsert: false });
+
+        if (uploadError) throw uploadError;
+
+        const { data } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(fileName);
+        const publicUrl = data.publicUrl;
+
+        const { error: dbError } = await supabaseClient.from("demand_images").insert({
+          demand_id: demandaAtual.id,
+          file_name: file.name,
+          public_url: publicUrl
+        });
+
+        if (dbError) throw dbError;
       }
 
-      alert("Anotações salvas com sucesso.");
+      await openDemand(demandaAtual.id);
+      $("inputImagens").value = "";
+      showAlert("Imagem(ns) enviada(s) com sucesso.", "success");
     }
 
-    function voltarLista() {
-      qs("detalheView").classList.add("hidden");
-      qs("listaView").classList.remove("hidden");
-      demandaSelecionada = null;
-      checklistAtual = [];
-      imagensAtuais = [];
-      qs("inputImagens").value = "";
-    }
-
-    function salvarImagensLocais() {
-      if (!demandaSelecionada) return;
-      localStorage.setItem("demanda_imagens_" + demandaSelecionada.id, JSON.stringify(imagensAtuais));
-    }
-
-    function renderizarImagens() {
-      const galeria = qs("galeriaImagens");
-
+    function renderImages() {
+      const gallery = $("galeriaImagens");
       if (!imagensAtuais.length) {
-        galeria.innerHTML = `
+        gallery.innerHTML = `
           <div class="col-span-full rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
             Nenhuma imagem adicionada ainda.
           </div>
@@ -622,94 +572,101 @@
         return;
       }
 
-      galeria.innerHTML = imagensAtuais.map((img, index) => `
+      gallery.innerHTML = imagensAtuais.map(img => `
         <div class="relative bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
-          <img src="${img}" alt="Imagem da demanda" class="w-full h-40 object-cover" />
-          <button
-            type="button"
-            data-index="${index}"
-            class="btn-remover-imagem absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded-lg"
-          >
-            Remover
-          </button>
+          <img src="${safeText(img.public_url)}" alt="${safeText(img.file_name || "Imagem da demanda")}" class="w-full h-44 object-cover" />
+          <button type="button" data-id="${img.id}" class="remove-image absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded-lg">Remover</button>
         </div>
       `).join("");
 
-      document.querySelectorAll(".btn-remover-imagem").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const index = Number(btn.dataset.index);
-          imagensAtuais.splice(index, 1);
-          salvarImagensLocais();
-          renderizarImagens();
+      document.querySelectorAll(".remove-image").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          await removeImage(btn.dataset.id);
         });
       });
     }
 
-    function adicionarImagens(files) {
-      if (!demandaSelecionada || !files || !files.length) return;
+    async function removeImage(imageId) {
+      const image = imagensAtuais.find(x => x.id === imageId);
+      if (!image) return;
 
-      const pendentes = Array.from(files);
-      let processadas = 0;
-
-      pendentes.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = e => {
-          imagensAtuais.push(e.target.result);
-          processadas++;
-          if (processadas === pendentes.length) {
-            salvarImagensLocais();
-            renderizarImagens();
+      if (image.public_url) {
+        try {
+          const url = new URL(image.public_url);
+          const marker = `/${STORAGE_BUCKET}/`;
+          const idx = url.pathname.indexOf(marker);
+          if (idx >= 0) {
+            const filePath = decodeURIComponent(url.pathname.slice(idx + marker.length));
+            await supabaseClient.storage.from(STORAGE_BUCKET).remove([filePath]);
           }
-        };
-        reader.readAsDataURL(file);
-      });
+        } catch (_) {}
+      }
+
+      const { error } = await supabaseClient
+        .from("demand_images")
+        .delete()
+        .eq("id", imageId);
+
+      if (error) throw error;
+
+      imagensAtuais = imagensAtuais.filter(x => x.id !== imageId);
+      renderImages();
+      showAlert("Imagem removida com sucesso.", "success");
     }
 
-    function registrarEventos() {
-      qs("btnNovaDemanda") && qs("btnNovaDemanda").addEventListener("click", abrirModalNovaDemanda);
-      qs("btnFecharModal") && qs("btnFecharModal").addEventListener("click", fecharModalNovaDemanda);
-      qs("btnCancelarModal") && qs("btnCancelarModal").addEventListener("click", fecharModalNovaDemanda);
-      qs("btnSalvarDemanda") && qs("btnSalvarDemanda").addEventListener("click", salvarDemanda);
-      qs("btnVoltarLista") && qs("btnVoltarLista").addEventListener("click", voltarLista);
-      qs("btnAdicionarChecklist") && qs("btnAdicionarChecklist").addEventListener("click", adicionarChecklist);
-      qs("btnSalvarNotas") && qs("btnSalvarNotas").addEventListener("click", salvarNotas);
-      qs("busca") && qs("busca").addEventListener("input", renderizarDemandas);
-      qs("novoChecklist") && qs("novoChecklist").addEventListener("keydown", (e) => {
+    function goBack() {
+      demandaAtual = null;
+      checklistAtual = [];
+      imagensAtuais = [];
+      $("detalheView").classList.add("hidden");
+      $("listaView").classList.remove("hidden");
+    }
+
+    function bindEvents() {
+      $("btnNovaDemanda").addEventListener("click", openModal);
+      $("btnFecharModal").addEventListener("click", closeModal);
+      $("btnCancelarModal").addEventListener("click", closeModal);
+      $("btnSalvarDemanda").addEventListener("click", async () => {
+        try { await createDemand(); } catch (e) { showAlert("Erro ao salvar demanda: " + e.message, "error"); }
+      });
+      $("btnVoltar").addEventListener("click", goBack);
+      $("busca").addEventListener("input", renderDemands);
+      $("btnAdicionarChecklist").addEventListener("click", async () => {
+        try { await addChecklistItem(); } catch (e) { showAlert("Erro ao adicionar item: " + e.message, "error"); }
+      });
+      $("novoChecklist").addEventListener("keydown", async (e) => {
         if (e.key === "Enter") {
           e.preventDefault();
-          adicionarChecklist();
+          try { await addChecklistItem(); } catch (err) { showAlert("Erro ao adicionar item: " + err.message, "error"); }
         }
       });
-      qs("inputImagens") && qs("inputImagens").addEventListener("change", (e) => adicionarImagens(e.target.files));
+      $("btnSalvarNotas").addEventListener("click", async () => {
+        try { await saveNotes(); } catch (e) { showAlert("Erro ao salvar anotações: " + e.message, "error"); }
+      });
+      $("inputImagens").addEventListener("change", async (e) => {
+        try { await uploadImages(e.target.files); } catch (err) { showAlert("Erro ao enviar imagens: " + err.message, "error"); }
+      });
 
-      qs("modalNovaDemanda") && qs("modalNovaDemanda").addEventListener("click", (e) => {
-        if (e.target.id === "modalNovaDemanda") {
-          fecharModalNovaDemanda();
-        }
+      $("modalNovaDemanda").addEventListener("click", (e) => {
+        if (e.target.id === "modalNovaDemanda") closeModal();
       });
 
       document.addEventListener("keydown", (e) => {
-        const modal = qs("modalNovaDemanda");
-        if (e.key === "Escape" && modal && !modal.classList.contains("hidden")) {
-          fecharModalNovaDemanda();
+        if (e.key === "Escape" && !$("modalNovaDemanda").classList.contains("hidden")) {
+          closeModal();
         }
       });
     }
 
     document.addEventListener("DOMContentLoaded", async () => {
-      registrarEventos();
-
-      const ok = initSupabase();
-      if (!ok) {
-        alert("Não foi possível iniciar o Supabase. Verifique sua internet e tente novamente.");
-        return;
-      }
-
       try {
-        await carregarDemandas();
+        bindEvents();
+        initSupabase();
+        await fetchDemands();
+        showAlert("Sistema carregado com sucesso.", "success");
       } catch (e) {
-        console.error("Erro ao carregar demandas:", e);
-        alert("O site carregou, mas houve um erro ao buscar as demandas.");
+        console.error(e);
+        showAlert("Erro ao iniciar o sistema: " + e.message, "error");
       }
     });
   </script>
