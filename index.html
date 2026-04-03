@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Sistema de Demandas</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body { font-family: Arial; background:#f5f5f5; margin:20px; }
+.card {
+  background:white; padding:15px; margin:10px 0;
+  border-radius:10px; cursor:pointer;
+}
+.alta { border-left:5px solid red }
+.media { border-left:5px solid orange }
+.baixa { border-left:5px solid green }
+
+button { padding:10px; margin-top:10px; cursor:pointer; }
+
+.hidden { display:none }
+</style>
+</head>
+
+<body>
+
+<h2>📋 Demandas</h2>
+<div id="contador"></div>
+
+<button onclick="novaDemanda()">+ Nova Demanda</button>
+
+<div id="lista"></div>
+
+<div id="form" class="hidden">
+  <h3>Nova Demanda</h3>
+  <input id="titulo" placeholder="Título"><br>
+  <input id="modulo" placeholder="Módulo"><br>
+  <select id="prioridade">
+    <option>baixa</option>
+    <option>media</option>
+    <option>alta</option>
+  </select><br>
+  <textarea id="resumo" placeholder="Resumo"></textarea><br>
+  <textarea id="descricao" placeholder="Descrição"></textarea><br>
+
+  <button onclick="salvar()">Salvar</button>
+</div>
+
+<div id="detalhe" class="hidden"></div>
+
+<script>
+
+// 🔴 COLE AQUI SUAS CHAVES
+const supabase = window.supabase.createClient(
+  "https://lsffkqeplxfkazceaoww.supabase.co",
+  "sb_publishable_YgVN3N_i1Fs0QrYUbkDLGg_BroxPLjx"
+);
+
+let demandaAtual = null;
+
+async function carregar() {
+  const { data } = await supabase.from("demands").select("*").order("created_at", {ascending:false});
+
+  let html = "";
+  let cont = {alta:0, media:0, baixa:0};
+
+  data.forEach(d => {
+    cont[d.priority]++;
+    html += `
+      <div class="card ${d.priority}" onclick="abrir('${d.id}')">
+        <b>${d.title}</b><br>
+        <small>${new Date(d.created_at).toLocaleString()}</small><br>
+        ${d.summary}
+      </div>
+    `;
+  });
+
+  document.getElementById("lista").innerHTML = html;
+  document.getElementById("contador").innerHTML =
+    `Alta: ${cont.alta} | Média: ${cont.media} | Baixa: ${cont.baixa}`;
+}
+
+function novaDemanda(){
+  document.getElementById("form").classList.remove("hidden");
+}
+
+async function salvar(){
+  await supabase.from("demands").insert({
+    title: titulo.value,
+    module: modulo.value,
+    priority: prioridade.value,
+    summary: resumo.value,
+    description: descricao.value
+  });
+
+  location.reload();
+}
+
+async function abrir(id){
+  const { data } = await supabase.from("demands").select("*").eq("id", id).single();
+  demandaAtual = data;
+
+  const { data: checklist } = await supabase
+    .from("demand_checklist")
+    .select("*")
+    .eq("demand_id", id);
+
+  let itens = "";
+  checklist.forEach(c=>{
+    itens += `
+      <div>
+        <input type="checkbox" ${c.done?"checked":""}
+          onchange="check('${c.id}', this.checked)">
+        ${c.text}
+      </div>
+    `;
+  });
+
+  document.getElementById("detalhe").innerHTML = `
+    <h3>${data.title}</h3>
+    <p>${data.description}</p>
+
+    <h4>Checklist</h4>
+    ${itens}
+
+    <input id="novoItem" placeholder="Novo item">
+    <button onclick="addItem()">Adicionar</button>
+
+    <br><br>
+    <button onclick="voltar()">Voltar</button>
+  `;
+
+  document.getElementById("lista").classList.add("hidden");
+  document.getElementById("detalhe").classList.remove("hidden");
+}
+
+async function addItem(){
+  await supabase.from("demand_checklist").insert({
+    demand_id: demandaAtual.id,
+    text: novoItem.value
+  });
+  abrir(demandaAtual.id);
+}
+
+async function check(id, done){
+  await supabase.from("demand_checklist")
+    .update({done})
+    .eq("id", id);
+}
+
+function voltar(){
+  document.getElementById("detalhe").classList.add("hidden");
+  document.getElementById("lista").classList.remove("hidden");
+}
+
+carregar();
+
+</script>
+
+</body>
+</html>
