@@ -1,161 +1,550 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<title>Sistema de Demandas</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portal de Demandas</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<style>
-body { font-family: Arial; background:#f5f5f5; margin:20px; }
-.card {
-  background:white; padding:15px; margin:10px 0;
-  border-radius:10px; cursor:pointer;
-}
-.alta { border-left:5px solid red }
-.media { border-left:5px solid orange }
-.baixa { border-left:5px solid green }
-
-button { padding:10px; margin-top:10px; cursor:pointer; }
-
-.hidden { display:none }
-</style>
+  <style>
+    .line-clamp-3 {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  </style>
 </head>
-
-<body>
-
-<h2>📋 Demandas</h2>
-<div id="contador"></div>
-
-<button onclick="novaDemanda()">+ Nova Demanda</button>
-
-<div id="lista"></div>
-
-<div id="form" class="hidden">
-  <h3>Nova Demanda</h3>
-  <input id="titulo" placeholder="Título"><br>
-  <input id="modulo" placeholder="Módulo"><br>
-  <select id="prioridade">
-    <option>baixa</option>
-    <option>media</option>
-    <option>alta</option>
-  </select><br>
-  <textarea id="resumo" placeholder="Resumo"></textarea><br>
-  <textarea id="descricao" placeholder="Descrição"></textarea><br>
-
-  <button onclick="salvar()">Salvar</button>
-</div>
-
-<div id="detalhe" class="hidden"></div>
-
-<script>
-
-// 🔴 COLE AQUI SUAS CHAVES
-const supabase = window.supabase.createClient(
-  "https://lsffkqeplxfkazceaoww.supabase.co",
-  "sb_publishable_YgVN3N_i1Fs0QrYUbkDLGg_BroxPLjx"
-);
-
-let demandaAtual = null;
-
-async function carregar() {
-  const { data } = await supabase.from("demands").select("*").order("created_at", {ascending:false});
-
-  let html = "";
-  let cont = {alta:0, media:0, baixa:0};
-
-  data.forEach(d => {
-    cont[d.priority]++;
-    html += `
-      <div class="card ${d.priority}" onclick="abrir('${d.id}')">
-        <b>${d.title}</b><br>
-        <small>${new Date(d.created_at).toLocaleString()}</small><br>
-        ${d.summary}
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+  <div class="min-h-screen">
+    <header class="bg-slate-900 text-white shadow-lg">
+      <div class="max-w-7xl mx-auto px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 class="text-2xl md:text-3xl font-bold">Portal de Demandas</h1>
+          <p class="text-slate-300 text-sm">Acompanhamento de melhorias e desenvolvimento do sistema</p>
+        </div>
+        <button
+          onclick="abrirModalNovaDemanda()"
+          class="bg-emerald-500 hover:bg-emerald-600 transition px-5 py-3 rounded-xl font-semibold shadow"
+        >
+          + Nova Demanda
+        </button>
       </div>
-    `;
-  });
+    </header>
 
-  document.getElementById("lista").innerHTML = html;
-  document.getElementById("contador").innerHTML =
-    `Alta: ${cont.alta} | Média: ${cont.media} | Baixa: ${cont.baixa}`;
-}
+    <main class="max-w-7xl mx-auto px-6 py-8">
+      <section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+          <p class="text-sm text-slate-500">Total de demandas</p>
+          <h2 id="totalDemandas" class="text-3xl font-bold mt-2">0</h2>
+        </div>
 
-function novaDemanda(){
-  document.getElementById("form").classList.remove("hidden");
-}
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-red-100">
+          <p class="text-sm text-slate-500">Prioridade alta</p>
+          <h2 id="totalAlta" class="text-3xl font-bold mt-2 text-red-500">0</h2>
+        </div>
 
-async function salvar(){
-  await supabase.from("demands").insert({
-    title: titulo.value,
-    module: modulo.value,
-    priority: prioridade.value,
-    summary: resumo.value,
-    description: descricao.value
-  });
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-100">
+          <p class="text-sm text-slate-500">Prioridade média</p>
+          <h2 id="totalMedia" class="text-3xl font-bold mt-2 text-amber-500">0</h2>
+        </div>
 
-  location.reload();
-}
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-emerald-100">
+          <p class="text-sm text-slate-500">Prioridade baixa</p>
+          <h2 id="totalBaixa" class="text-3xl font-bold mt-2 text-emerald-500">0</h2>
+        </div>
+      </section>
 
-async function abrir(id){
-  const { data } = await supabase.from("demands").select("*").eq("id", id).single();
-  demandaAtual = data;
+      <section id="listaView">
+        <div class="flex flex-col md:flex-row gap-4 md:items-center md:justify-between mb-6">
+          <div>
+            <h2 class="text-xl font-bold">Demandas cadastradas</h2>
+            <p class="text-slate-500 text-sm">Clique em uma demanda para ver os detalhes e avançamento</p>
+          </div>
 
-  const { data: checklist } = await supabase
-    .from("demand_checklist")
-    .select("*")
-    .eq("demand_id", id);
+          <div class="flex gap-3">
+            <input
+              id="busca"
+              type="text"
+              placeholder="Buscar por título ou módulo..."
+              class="w-full md:w-80 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-300"
+              oninput="renderizarDemandas()"
+            />
+          </div>
+        </div>
 
-  let itens = "";
-  checklist.forEach(c=>{
-    itens += `
-      <div>
-        <input type="checkbox" ${c.done?"checked":""}
-          onchange="check('${c.id}', this.checked)">
-        ${c.text}
+        <div id="listaDemandas" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"></div>
+      </section>
+
+      <section id="detalheView" class="hidden">
+        <div class="mb-6">
+          <button
+            onclick="voltarLista()"
+            class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 transition font-medium"
+          >
+            ← Voltar
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div class="xl:col-span-2 space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <div class="flex flex-wrap gap-3 items-start justify-between">
+                <div>
+                  <h2 id="detTitulo" class="text-2xl font-bold"></h2>
+                  <p id="detData" class="text-sm text-slate-500 mt-1"></p>
+                </div>
+                <div class="flex gap-2 flex-wrap">
+                  <span id="detPrioridade" class="px-3 py-1 rounded-full text-sm font-semibold"></span>
+                  <span id="detStatus" class="px-3 py-1 rounded-full text-sm font-semibold bg-slate-100 text-slate-700"></span>
+                </div>
+              </div>
+
+              <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs uppercase text-slate-500 font-semibold">Módulo</p>
+                  <p id="detModulo" class="mt-2 font-medium"></p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs uppercase text-slate-500 font-semibold">Resumo</p>
+                  <p id="detResumo" class="mt-2 text-sm"></p>
+                </div>
+              </div>
+
+              <div class="mt-6">
+                <p class="text-xs uppercase text-slate-500 font-semibold mb-2">Descrição completa</p>
+                <div id="detDescricao" class="bg-slate-50 rounded-xl p-4 border border-slate-200 whitespace-pre-line"></div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold">Checklist</h3>
+                <span id="checkProgress" class="text-sm text-slate-500"></span>
+              </div>
+
+              <div class="flex gap-3 mb-4">
+                <input
+                  id="novoChecklist"
+                  type="text"
+                  placeholder="Adicionar item no checklist"
+                  class="flex-1 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-300"
+                />
+                <button
+                  onclick="adicionarChecklist()"
+                  class="bg-slate-900 text-white px-4 py-3 rounded-xl hover:bg-slate-800 transition"
+                >
+                  Adicionar
+                </button>
+              </div>
+
+              <div id="listaChecklist" class="space-y-3"></div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <h3 class="text-lg font-bold mb-4">Anotações da demanda</h3>
+              <textarea
+                id="campoNotas"
+                rows="8"
+                placeholder="Escreva aqui observações, evolução, orientações, pendências..."
+                class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-300"
+              ></textarea>
+              <div class="mt-4 flex justify-end">
+                <button
+                  onclick="salvarNotas()"
+                  class="bg-blue-600 text-white px-5 py-3 rounded-xl hover:bg-blue-700 transition font-medium"
+                >
+                  Salvar anotações
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <h3 class="text-lg font-bold mb-4">Informações rápidas</h3>
+              <div class="space-y-4 text-sm">
+                <div>
+                  <p class="text-slate-500">Título</p>
+                  <p id="sideTitulo" class="font-medium"></p>
+                </div>
+                <div>
+                  <p class="text-slate-500">Módulo</p>
+                  <p id="sideModulo" class="font-medium"></p>
+                </div>
+                <div>
+                  <p class="text-slate-500">Criada em</p>
+                  <p id="sideData" class="font-medium"></p>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <h3 class="text-lg font-bold mb-4">Próximos passos</h3>
+              <p class="text-sm text-slate-600 leading-6">
+                Use esta área para acompanhar o andamento da implementação, registrar observações e marcar cada etapa concluída.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="modalNovaDemanda" class="hidden fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
+    <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold">Cadastrar nova demanda</h2>
+        <button onclick="fecharModalNovaDemanda()" class="text-slate-500 hover:text-slate-700 text-xl">✕</button>
       </div>
-    `;
-  });
 
-  document.getElementById("detalhe").innerHTML = `
-    <h3>${data.title}</h3>
-    <p>${data.description}</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="md:col-span-2">
+          <label class="text-sm font-medium text-slate-600">Título</label>
+          <input id="titulo" type="text" class="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-300" />
+        </div>
 
-    <h4>Checklist</h4>
-    ${itens}
+        <div>
+          <label class="text-sm font-medium text-slate-600">Módulo</label>
+          <input id="modulo" type="text" class="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-300" />
+        </div>
 
-    <input id="novoItem" placeholder="Novo item">
-    <button onclick="addItem()">Adicionar</button>
+        <div>
+          <label class="text-sm font-medium text-slate-600">Prioridade</label>
+          <select id="prioridade" class="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-300">
+            <option value="baixa">Baixa</option>
+            <option value="media">Média</option>
+            <option value="alta">Alta</option>
+          </select>
+        </div>
 
-    <br><br>
-    <button onclick="voltar()">Voltar</button>
-  `;
+        <div class="md:col-span-2">
+          <label class="text-sm font-medium text-slate-600">Resumo</label>
+          <textarea id="resumo" rows="3" class="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-300"></textarea>
+        </div>
 
-  document.getElementById("lista").classList.add("hidden");
-  document.getElementById("detalhe").classList.remove("hidden");
-}
+        <div class="md:col-span-2">
+          <label class="text-sm font-medium text-slate-600">Descrição completa</label>
+          <textarea id="descricao" rows="6" class="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-300"></textarea>
+        </div>
+      </div>
 
-async function addItem(){
-  await supabase.from("demand_checklist").insert({
-    demand_id: demandaAtual.id,
-    text: novoItem.value
-  });
-  abrir(demandaAtual.id);
-}
+      <div class="mt-6 flex justify-end gap-3">
+        <button onclick="fecharModalNovaDemanda()" class="px-4 py-3 rounded-xl bg-slate-200 hover:bg-slate-300 transition">
+          Cancelar
+        </button>
+        <button onclick="salvarDemanda()" class="px-5 py-3 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition font-semibold">
+          Salvar demanda
+        </button>
+      </div>
+    </div>
+  </div>
 
-async function check(id, done){
-  await supabase.from("demand_checklist")
-    .update({done})
-    .eq("id", id);
-}
+  <script>
+    const supabase = window.supabase.createClient(
+      "https://lsffkqeplxfkazceaoww.supabase.co",
+	  "sb_publishable_YgVN3N_i1Fs0QrYUbkDLGg_BroxPLjx"
+    );
 
-function voltar(){
-  document.getElementById("detalhe").classList.add("hidden");
-  document.getElementById("lista").classList.remove("hidden");
-}
+    let demandas = [];
+    let demandaSelecionada = null;
+    let checklistAtual = [];
 
-carregar();
+    function formatarData(data) {
+      if (!data) return "";
+      return new Date(data).toLocaleString("pt-BR");
+    }
 
-</script>
+    function classePrioridade(prioridade) {
+      if (prioridade === "alta") return "bg-red-100 text-red-700";
+      if (prioridade === "media") return "bg-amber-100 text-amber-700";
+      return "bg-emerald-100 text-emerald-700";
+    }
 
+    function textoPrioridade(prioridade) {
+      if (prioridade === "alta") return "Alta";
+      if (prioridade === "media") return "Média";
+      return "Baixa";
+    }
+
+    function abrirModalNovaDemanda() {
+      document.getElementById("modalNovaDemanda").classList.remove("hidden");
+      document.getElementById("modalNovaDemanda").classList.add("flex");
+    }
+
+    function fecharModalNovaDemanda() {
+      document.getElementById("modalNovaDemanda").classList.add("hidden");
+      document.getElementById("modalNovaDemanda").classList.remove("flex");
+      limparFormulario();
+    }
+
+    function limparFormulario() {
+      document.getElementById("titulo").value = "";
+      document.getElementById("modulo").value = "";
+      document.getElementById("prioridade").value = "baixa";
+      document.getElementById("resumo").value = "";
+      document.getElementById("descricao").value = "";
+    }
+
+    async function carregarDemandas() {
+      const { data, error } = await supabase
+        .from("demands")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        alert("Erro ao carregar demandas: " + error.message);
+        return;
+      }
+
+      demandas = data || [];
+      atualizarResumo();
+      renderizarDemandas();
+    }
+
+    function atualizarResumo() {
+      const total = demandas.length;
+      const alta = demandas.filter(d => d.priority === "alta").length;
+      const media = demandas.filter(d => d.priority === "media").length;
+      const baixa = demandas.filter(d => d.priority === "baixa").length;
+
+      document.getElementById("totalDemandas").textContent = total;
+      document.getElementById("totalAlta").textContent = alta;
+      document.getElementById("totalMedia").textContent = media;
+      document.getElementById("totalBaixa").textContent = baixa;
+    }
+
+    function renderizarDemandas() {
+      const busca = document.getElementById("busca").value.toLowerCase().trim();
+      const lista = document.getElementById("listaDemandas");
+
+      const filtradas = demandas.filter(d => {
+        const titulo = (d.title || "").toLowerCase();
+        const modulo = (d.module || "").toLowerCase();
+        const resumo = (d.summary || "").toLowerCase();
+        return titulo.includes(busca) || modulo.includes(busca) || resumo.includes(busca);
+      });
+
+      if (!filtradas.length) {
+        lista.innerHTML = `
+          <div class="col-span-full bg-white border border-slate-200 rounded-2xl p-10 text-center shadow-sm">
+            <p class="text-lg font-semibold text-slate-700">Nenhuma demanda encontrada</p>
+            <p class="text-slate-500 mt-2">Cadastre uma nova demanda ou ajuste sua busca.</p>
+          </div>
+        `;
+        return;
+      }
+
+      lista.innerHTML = filtradas.map(d => `
+        <div
+          onclick="abrirDetalhe('${d.id}')"
+          class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer p-5"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h3 class="text-lg font-bold text-slate-800">${escapeHtml(d.title || "")}</h3>
+              <p class="text-sm text-slate-500 mt-1">${formatarData(d.created_at)}</p>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-semibold ${classePrioridade(d.priority)}">
+              ${textoPrioridade(d.priority)}
+            </span>
+          </div>
+
+          <div class="mt-4">
+            <p class="text-xs uppercase text-slate-500 font-semibold">Módulo</p>
+            <p class="mt-1 text-sm font-medium text-slate-700">${escapeHtml(d.module || "-")}</p>
+          </div>
+
+          <div class="mt-4">
+            <p class="text-xs uppercase text-slate-500 font-semibold">Resumo</p>
+            <p class="mt-1 text-sm text-slate-600 line-clamp-3">${escapeHtml(d.summary || "")}</p>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function salvarDemanda() {
+      const title = document.getElementById("titulo").value.trim();
+      const module = document.getElementById("modulo").value.trim();
+      const priority = document.getElementById("prioridade").value;
+      const summary = document.getElementById("resumo").value.trim();
+      const description = document.getElementById("descricao").value.trim();
+
+      if (!title || !summary || !description) {
+        alert("Preencha pelo menos título, resumo e descrição.");
+        return;
+      }
+
+      const { error } = await supabase.from("demands").insert({
+        title,
+        module,
+        priority,
+        status: "aberta",
+        summary,
+        description,
+        notes: ""
+      });
+
+      if (error) {
+        alert("Erro ao salvar demanda: " + error.message);
+        return;
+      }
+
+      fecharModalNovaDemanda();
+      await carregarDemandas();
+    }
+
+    async function abrirDetalhe(id) {
+      const { data, error } = await supabase
+        .from("demands")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) {
+        alert("Erro ao abrir demanda: " + error.message);
+        return;
+      }
+
+      demandaSelecionada = data;
+
+      const { data: checklist, error: checklistError } = await supabase
+        .from("demand_checklist")
+        .select("*")
+        .eq("demand_id", id)
+        .order("id", { ascending: true });
+
+      if (checklistError) {
+        alert("Erro ao carregar checklist: " + checklistError.message);
+        return;
+      }
+
+      checklistAtual = checklist || [];
+
+      document.getElementById("listaView").classList.add("hidden");
+      document.getElementById("detalheView").classList.remove("hidden");
+
+      document.getElementById("detTitulo").textContent = data.title || "";
+      document.getElementById("detData").textContent = "Inserida em " + formatarData(data.created_at);
+      document.getElementById("detModulo").textContent = data.module || "-";
+      document.getElementById("detResumo").textContent = data.summary || "";
+      document.getElementById("detDescricao").textContent = data.description || "";
+      document.getElementById("detStatus").textContent = data.status || "aberta";
+      document.getElementById("detPrioridade").textContent = textoPrioridade(data.priority);
+      document.getElementById("detPrioridade").className = `px-3 py-1 rounded-full text-sm font-semibold ${classePrioridade(data.priority)}`;
+
+      document.getElementById("sideTitulo").textContent = data.title || "";
+      document.getElementById("sideModulo").textContent = data.module || "-";
+      document.getElementById("sideData").textContent = formatarData(data.created_at);
+      document.getElementById("campoNotas").value = data.notes || "";
+
+      renderizarChecklist();
+    }
+
+    function renderizarChecklist() {
+      const lista = document.getElementById("listaChecklist");
+
+      if (!checklistAtual.length) {
+        lista.innerHTML = `
+          <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
+            Nenhum item no checklist ainda.
+          </div>
+        `;
+      } else {
+        lista.innerHTML = checklistAtual.map(item => `
+          <label class="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <input
+              type="checkbox"
+              ${item.done ? "checked" : ""}
+              onchange="marcarChecklist('${item.id}', this.checked)"
+              class="w-5 h-5"
+            />
+            <span class="${item.done ? 'line-through text-slate-400' : 'text-slate-700'}">
+              ${escapeHtml(item.text || "")}
+            </span>
+          </label>
+        `).join("");
+      }
+
+      const total = checklistAtual.length;
+      const concluidos = checklistAtual.filter(i => i.done).length;
+      document.getElementById("checkProgress").textContent = `${concluidos} de ${total} concluídos`;
+    }
+
+    async function adicionarChecklist() {
+      const texto = document.getElementById("novoChecklist").value.trim();
+
+      if (!texto || !demandaSelecionada) {
+        return;
+      }
+
+      const { error } = await supabase.from("demand_checklist").insert({
+        demand_id: demandaSelecionada.id,
+        text: texto,
+        done: false
+      });
+
+      if (error) {
+        alert("Erro ao adicionar item: " + error.message);
+        return;
+      }
+
+      document.getElementById("novoChecklist").value = "";
+      await abrirDetalhe(demandaSelecionada.id);
+    }
+
+    async function marcarChecklist(id, done) {
+      const { error } = await supabase
+        .from("demand_checklist")
+        .update({ done })
+        .eq("id", id);
+
+      if (error) {
+        alert("Erro ao atualizar checklist: " + error.message);
+        return;
+      }
+
+      const item = checklistAtual.find(i => i.id === id);
+      if (item) item.done = done;
+      renderizarChecklist();
+    }
+
+    async function salvarNotas() {
+      if (!demandaSelecionada) return;
+
+      const notes = document.getElementById("campoNotas").value;
+
+      const { error } = await supabase
+        .from("demands")
+        .update({ notes })
+        .eq("id", demandaSelecionada.id);
+
+      if (error) {
+        alert("Erro ao salvar anotações: " + error.message);
+        return;
+      }
+
+      alert("Anotações salvas com sucesso.");
+    }
+
+    function voltarLista() {
+      document.getElementById("detalheView").classList.add("hidden");
+      document.getElementById("listaView").classList.remove("hidden");
+      demandaSelecionada = null;
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    carregarDemandas();
+  </script>
 </body>
 </html>
