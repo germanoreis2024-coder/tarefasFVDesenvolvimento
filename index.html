@@ -66,8 +66,11 @@
       </section>
 
       <section id="detalheView" class="hidden">
-        <div class="mb-6">
+        <div class="mb-6 flex items-center justify-between gap-3">
           <button id="btnVoltar" type="button" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 transition font-medium">← Voltar</button>
+          <button id="btnConcluirTarefa" type="button" class="hidden bg-emerald-600 text-white px-5 py-3 rounded-xl hover:bg-emerald-700 transition font-semibold shadow">
+            Concluir tarefa
+          </button>
         </div>
 
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -80,7 +83,7 @@
                 </div>
                 <div class="flex gap-2 flex-wrap">
                   <span id="detPrioridade" class="px-3 py-1 rounded-full text-sm font-semibold"></span>
-                  <span id="detStatus" class="px-3 py-1 rounded-full text-sm font-semibold bg-slate-100 text-slate-700"></span>
+                  <span id="detStatus" class="px-3 py-1 rounded-full text-sm font-semibold"></span>
                 </div>
               </div>
 
@@ -155,13 +158,17 @@
                   <p class="text-slate-500">Criada em</p>
                   <p id="sideData" class="font-medium"></p>
                 </div>
+                <div>
+                  <p class="text-slate-500">Status atual</p>
+                  <p id="sideStatus" class="font-medium"></p>
+                </div>
               </div>
             </div>
 
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <h3 class="text-lg font-bold mb-4">Orientação</h3>
+              <h3 class="text-lg font-bold mb-4">Regra de conclusão</h3>
               <p class="text-sm text-slate-600 leading-6">
-                Use esta tela para acompanhar cada solicitação, salvar observações, criar checklist e enviar imagens de apoio.
+                A tarefa só pode ser concluída quando existir ao menos um item no checklist e todos os itens estiverem marcados como concluídos.
               </p>
             </div>
           </div>
@@ -269,6 +276,16 @@
       return "Baixa";
     }
 
+    function statusBadge(status) {
+      if (status === "concluida") return "bg-emerald-100 text-emerald-700";
+      return "bg-slate-100 text-slate-700";
+    }
+
+    function statusText(status) {
+      if (status === "concluida") return "concluída";
+      return "pendente";
+    }
+
     function initSupabase() {
       if (!window.supabase || typeof window.supabase.createClient !== "function") {
         throw new Error("Biblioteca do Supabase não carregou.");
@@ -344,7 +361,10 @@
               <h3 class="text-lg font-bold text-slate-800">${safeText(d.title)}</h3>
               <p class="text-sm text-slate-500 mt-1">${formatDate(d.created_at)}</p>
             </div>
-            <span class="px-3 py-1 rounded-full text-xs font-semibold ${priorityBadge(d.priority)}">${priorityText(d.priority)}</span>
+            <div class="flex flex-col gap-2 items-end">
+              <span class="px-3 py-1 rounded-full text-xs font-semibold ${priorityBadge(d.priority)}">${priorityText(d.priority)}</span>
+              <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusBadge(d.status)}">${statusText(d.status)}</span>
+            </div>
           </div>
           <div class="mt-4">
             <p class="text-xs uppercase text-slate-500 font-semibold">Módulo</p>
@@ -378,7 +398,7 @@
         title,
         module,
         priority,
-        status: "aberta",
+        status: "pendente",
         summary,
         description,
         notes: ""
@@ -389,6 +409,63 @@
       closeModal();
       await fetchDemands();
       showAlert("Demanda criada com sucesso.", "success");
+    }
+
+    function canConcludeCurrentDemand() {
+      if (!demandaAtual) return false;
+      if (!checklistAtual.length) return false;
+      return checklistAtual.every(item => item.done === true);
+    }
+
+    function updateConcludeButton() {
+      const btn = $("btnConcluirTarefa");
+      if (!demandaAtual) {
+        btn.classList.add("hidden");
+        return;
+      }
+
+      if (demandaAtual.status === "concluida") {
+        btn.classList.add("hidden");
+        return;
+      }
+
+      btn.classList.remove("hidden");
+
+      if (canConcludeCurrentDemand()) {
+        btn.disabled = false;
+        btn.className = "bg-emerald-600 text-white px-5 py-3 rounded-xl hover:bg-emerald-700 transition font-semibold shadow";
+        btn.textContent = "Concluir tarefa";
+      } else {
+        btn.disabled = true;
+        btn.className = "bg-slate-300 text-slate-500 px-5 py-3 rounded-xl cursor-not-allowed font-semibold shadow";
+        btn.textContent = "Concluir tarefa";
+      }
+    }
+
+    async function concludeDemand() {
+      if (!demandaAtual) return;
+
+      if (!checklistAtual.length) {
+        showAlert("Cadastre ao menos um item no checklist antes de concluir.", "error");
+        return;
+      }
+
+      if (!checklistAtual.every(item => item.done === true)) {
+        showAlert("Marque todos os itens do checklist como concluídos antes de finalizar a tarefa.", "error");
+        return;
+      }
+
+      const { error } = await supabaseClient
+        .from("demands")
+        .update({ status: "concluida" })
+        .eq("id", demandaAtual.id);
+
+      if (error) throw error;
+
+      demandaAtual.status = "concluida";
+      await fetchDemands();
+      await openDemand(demandaAtual.id);
+      showAlert("Tarefa concluída com sucesso.", "success");
     }
 
     async function openDemand(id) {
@@ -406,7 +483,7 @@
         .eq("demand_id", id)
         .order("created_at", { ascending: true });
 
-      if (checklistError && !String(checklistError.message || "").includes("created_at")) throw checklistError;
+      if (checklistError) throw checklistError;
 
       const { data: images, error: imageError } = await supabaseClient
         .from("demand_images")
@@ -414,7 +491,7 @@
         .eq("demand_id", id)
         .order("created_at", { ascending: true });
 
-      if (imageError && !String(imageError.message || "").includes("created_at")) throw imageError;
+      if (imageError) throw imageError;
 
       demandaAtual = demand;
       checklistAtual = checklist || [];
@@ -428,17 +505,20 @@
       $("detModulo").textContent = demand.module || "-";
       $("detResumo").textContent = demand.summary || "";
       $("detDescricao").textContent = demand.description || "";
-      $("detStatus").textContent = demand.status || "aberta";
+      $("detStatus").textContent = statusText(demand.status);
+      $("detStatus").className = "px-3 py-1 rounded-full text-sm font-semibold " + statusBadge(demand.status);
       $("detPrioridade").textContent = priorityText(demand.priority);
       $("detPrioridade").className = "px-3 py-1 rounded-full text-sm font-semibold " + priorityBadge(demand.priority);
 
       $("sideTitulo").textContent = demand.title || "";
       $("sideModulo").textContent = demand.module || "-";
       $("sideData").textContent = formatDate(demand.created_at);
+      $("sideStatus").textContent = statusText(demand.status);
       $("campoNotas").value = demand.notes || "";
 
       renderChecklist();
       renderImages();
+      updateConcludeButton();
     }
 
     function renderChecklist() {
@@ -453,22 +533,30 @@
         list.innerHTML = checklistAtual.map(item => `
           <div class="flex items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
             <label class="flex items-center gap-3 flex-1">
-              <input type="checkbox" data-id="${item.id}" class="check-item w-5 h-5" ${item.done ? "checked" : ""} />
+              <input type="checkbox" data-id="${item.id}" class="check-item w-5 h-5" ${item.done ? "checked" : ""} ${demandaAtual && demandaAtual.status === "concluida" ? "disabled" : ""} />
               <span class="${item.done ? "line-through text-slate-400" : "text-slate-700"}">${safeText(item.text)}</span>
             </label>
-            <button type="button" data-id="${item.id}" class="delete-check px-3 py-1 rounded-lg bg-red-100 text-red-700 text-sm">Excluir</button>
+            <button type="button" data-id="${item.id}" class="delete-check px-3 py-1 rounded-lg bg-red-100 text-red-700 text-sm ${demandaAtual && demandaAtual.status === "concluida" ? "hidden" : ""}">Excluir</button>
           </div>
         `).join("");
 
         document.querySelectorAll(".check-item").forEach(el => {
           el.addEventListener("change", async (e) => {
-            await toggleChecklistItem(e.target.dataset.id, e.target.checked);
+            try {
+              await toggleChecklistItem(e.target.dataset.id, e.target.checked);
+            } catch (err) {
+              showAlert("Erro ao atualizar checklist: " + err.message, "error");
+            }
           });
         });
 
         document.querySelectorAll(".delete-check").forEach(el => {
           el.addEventListener("click", async () => {
-            await deleteChecklistItem(el.dataset.id);
+            try {
+              await deleteChecklistItem(el.dataset.id);
+            } catch (err) {
+              showAlert("Erro ao excluir item: " + err.message, "error");
+            }
           });
         });
       }
@@ -476,10 +564,16 @@
       const total = checklistAtual.length;
       const done = checklistAtual.filter(i => i.done).length;
       $("checkProgress").textContent = `${done} de ${total} concluídos`;
+      updateConcludeButton();
     }
 
     async function addChecklistItem() {
       if (!demandaAtual) return;
+      if (demandaAtual.status === "concluida") {
+        showAlert("Não é possível adicionar itens em uma tarefa concluída.", "error");
+        return;
+      }
+
       const text = $("novoChecklist").value.trim();
       if (!text) return;
 
@@ -533,6 +627,10 @@
 
     async function uploadImages(files) {
       if (!demandaAtual || !files || !files.length) return;
+      if (demandaAtual.status === "concluida") {
+        showAlert("Não é possível enviar imagens em uma tarefa concluída.", "error");
+        return;
+      }
 
       for (const file of Array.from(files)) {
         const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
@@ -575,13 +673,17 @@
       gallery.innerHTML = imagensAtuais.map(img => `
         <div class="relative bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
           <img src="${safeText(img.public_url)}" alt="${safeText(img.file_name || "Imagem da demanda")}" class="w-full h-44 object-cover" />
-          <button type="button" data-id="${img.id}" class="remove-image absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded-lg">Remover</button>
+          <button type="button" data-id="${img.id}" class="remove-image absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded-lg ${demandaAtual && demandaAtual.status === "concluida" ? "hidden" : ""}">Remover</button>
         </div>
       `).join("");
 
       document.querySelectorAll(".remove-image").forEach(btn => {
         btn.addEventListener("click", async () => {
-          await removeImage(btn.dataset.id);
+          try {
+            await removeImage(btn.dataset.id);
+          } catch (err) {
+            showAlert("Erro ao remover imagem: " + err.message, "error");
+          }
         });
       });
     }
@@ -620,6 +722,7 @@
       imagensAtuais = [];
       $("detalheView").classList.add("hidden");
       $("listaView").classList.remove("hidden");
+      $("btnConcluirTarefa").classList.add("hidden");
     }
 
     function bindEvents() {
@@ -630,6 +733,9 @@
         try { await createDemand(); } catch (e) { showAlert("Erro ao salvar demanda: " + e.message, "error"); }
       });
       $("btnVoltar").addEventListener("click", goBack);
+      $("btnConcluirTarefa").addEventListener("click", async () => {
+        try { await concludeDemand(); } catch (e) { showAlert("Erro ao concluir tarefa: " + e.message, "error"); }
+      });
       $("busca").addEventListener("input", renderDemands);
       $("btnAdicionarChecklist").addEventListener("click", async () => {
         try { await addChecklistItem(); } catch (e) { showAlert("Erro ao adicionar item: " + e.message, "error"); }
